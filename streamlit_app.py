@@ -147,11 +147,12 @@ if uploaded:
             звонков=(num_col, 'count'),
             средний_CSI=('_csi', 'mean'),
             ответили_все=(num_col, lambda x: (temp_df.loc[x.index, '_answers'] == len(question_cols_temp)).sum()),
-            ответили_хотябы=(num_col, lambda x: (temp_df.loc[x.index, '_answers'] > 0).sum() ),
+            ответили_хотябы=(num_col, lambda x: (temp_df.loc[x.index, '_answers'] > 0).sum()),
+            количество_CSI=(num_col, lambda x: temp_df.loc[x.index, '_csi'].notna().sum()),
         )
         dept_stats['%_ответили_все'] = dept_stats['ответили_все'] / dept_stats['звонков'] * 100
         dept_stats['%_ответили_хотябы'] = dept_stats['ответили_хотябы'] / dept_stats['звонков'] * 100
-        dept_stats['средний_CSI'] = dept_stats['средний_CSI'].round(2)
+        dept_stats['средний_CSI'] = dept_stats['средний_CSI'].round(1)
         return dept_stats
 
     try:
@@ -189,11 +190,11 @@ if uploaded:
         percent_any = any_answered / total_calls * 100 if total_calls else 0
 
         # Среднее количество ответов по пациентам с хотя бы одним ответом
-        avg_answers_with_some = np.mean(df['_answers'][df['_answers'] > 0]) if any_answered else None
+        avg_answers_with_some = np.round(np.mean(df['_answers'][df['_answers'] > 0]), 1) if any_answered else None
 
         # Средний CSI по пациентам с ответами
         valid_csi = df['_csi'].dropna()
-        avg_csi = np.mean(valid_csi) if len(valid_csi) else None
+        avg_csi = np.round(np.mean(valid_csi), 1) if len(valid_csi) else None
 
         st.markdown("## 📊 Ключевые показатели")
 
@@ -222,13 +223,13 @@ if uploaded:
         with col4:
             st.metric(
                 'Среднее кол-во ответов',
-                f"{avg_answers_with_some:.2f}" if avg_answers_with_some else "Нет данных",
+                f"{avg_answers_with_some:.1f}" if avg_answers_with_some else "Нет данных",
                 help="Среднее количество ответов среди пациентов, ответивших хотя бы на один вопрос"
             )
         with col5:
             st.metric(
                 'Средний CSI',
-                f"{avg_csi:.2f}" if avg_csi else "Нет данных",
+                f"{avg_csi:.1f}" if avg_csi else "Нет данных",
                 help="Среднее значение CSI среди пациентов, ответивших хотя бы на один вопрос"
             )
 
@@ -240,7 +241,7 @@ if uploaded:
         styled_stats = dept_stats.reset_index().style\
             .background_gradient(subset=['средний_CSI'], cmap='RdYlGn')\
             .format({
-                'средний_CSI': '{:.2f}',
+                'средний_CSI': '{:.1f}',
                 '%_ответили_все': '{:.1f}%',
                 '%_ответили_хотябы': '{:.1f}%'
             })\
@@ -267,15 +268,18 @@ if uploaded:
             q_stats = df.groupby(dept_col)[qcol].apply(
                 lambda vals: np.mean(lst) if (lst := [int(str(v).strip()) for v in vals if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]) else np.nan
             )
-            
+            q_counts = df.dropna(subset=[qcol]).groupby(dept_col)[qcol].count()
+
             fig = go.Figure()
             fig.add_bar(
                 x=q_stats.index,
                 y=q_stats.values,
                 marker_color='skyblue',
-                text=q_stats.values.round(2),
+                text=q_stats.values.round(1),
                 textposition='auto',
                 textfont=dict(size=18),
+                customdata=q_counts.reindex(q_stats.index),
+                hovertemplate="Средний балл: %{y:.1f}<br>Количество ответов: %{customdata}",
             )
 
             # Настройка графика
@@ -291,7 +295,7 @@ if uploaded:
                 yaxis=dict(tickfont=dict(size=14)),
                 title_font=dict(size=18)
             )
-            
+
             # Вывод с минимальной конфигурацией
             st.plotly_chart(fig, use_container_width=True)
 
@@ -315,9 +319,9 @@ if uploaded:
                 key='download-stats'
             )
 
-        # Сравнение месяцев
+        # Сравнение периодов
         if len(uploaded) >= 2:
-            st.markdown("## 📊 Сравнение месяцев")
+            st.markdown("## 📊 Сравнение периодов")
             files = [f.name for f in uploaded]
             col_comp1, col_comp2 = st.columns(2)
             with col_comp1:
@@ -349,13 +353,16 @@ if uploaded:
 
                     fig_comp = go.Figure()
                     for col in comp_df.columns:
+                        counts = dept_stats1['количество_CSI'][list(common_depts)] if col == file1 else dept_stats2['количество_CSI'][list(common_depts)]
                         fig_comp.add_bar(
                             name=col,
                             x=comp_df.index,
                             y=comp_df[col],
-                            text=comp_df[col].round(2),
+                            text=comp_df[col].round(1),
                             textposition='auto',
                             textfont=dict(size=18),
+                            customdata=counts,
+                            hovertemplate="Средний CSI: %{y:.1f}<br>Количество CSI: %{customdata}",
                         )
                     fig_comp.update_layout(
                         barmode='group',
