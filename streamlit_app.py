@@ -10,12 +10,12 @@ import io
 st.set_page_config(
     page_title='AutoCall — Аналитика',
     layout='wide',
-    initial_sidebar_state='expanded'
+    initial_sidebar_state='collapsed'
 )
 
 # Session state for theme
 if 'theme' not in st.session_state:
-    st.session_state.theme = 'light'
+    st.session_state.theme = 'dark'
 
 # Toggle theme
 theme_toggle = st.sidebar.toggle("🌙 Темная тема", value=st.session_state.theme == 'dark')
@@ -127,11 +127,15 @@ st.markdown(f"""
 
     .stTabs [data-baseweb="tab"] {{
         color: {text_color};
+        font-size: 18px !important;
+        padding: 12px 16px !important;
     }}
 
     .stTabs [data-baseweb="tab"][aria-selected="true"] {{
         background-color: {header_color};
         color: white;
+        font-size: 18px !important;
+        padding: 12px 16px !important;
     }}
 
     /* Анимации при наведении */
@@ -484,23 +488,7 @@ if uploaded:
             mime = "text/plain"
             fname = "report.txt"
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.download_button(
-                "⬇️ Скачать очищенные данные (CSV)",
-                df.to_csv(index=False, encoding='utf-8-sig'),
-                "cleaned_data.csv",
-                "text/csv",
-                key='download-csv'
-            )
-        with col2:
-            st.download_button(
-                "⬇️ Скачать статистику по отделениям (CSV)",
-                dept_stats.reset_index().to_csv(index=False, encoding='utf-8-sig'),
-                "department_stats.csv",
-                "text/csv",
-                key='download-stats'
-            )
+
 
         with tab_export:
             st.markdown("### 💾 Экспорт данных")
