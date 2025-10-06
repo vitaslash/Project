@@ -13,6 +13,12 @@ st.set_page_config(
     initial_sidebar_state='collapsed'
 )
 
+# Sidebar logo
+try:
+    st.sidebar.image("logo.jpg", use_column_width=True)
+except FileNotFoundError:
+    pass
+
 # Session state for theme
 if 'theme' not in st.session_state:
     st.session_state.theme = 'dark'
