@@ -366,6 +366,8 @@ if uploaded:
         # Generate Word document report
         try:
             from docx import Document
+            from docx.shared import Pt
+
             doc = Document()
             doc.add_heading('AutoCall Аналитика - Отчет', 0)
             doc.add_paragraph('.')
@@ -378,6 +380,15 @@ if uploaded:
             doc.add_heading('Статистика по отделениям', level=2)
             table = doc.add_table(rows=1, cols=dept_stats.shape[1] + 1)
             table.style = 'Table Grid'
+
+            # Set font for all table cells to Calibri
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for run in paragraph.runs:
+                            run.font.name = 'Calibri'
+                            run.font.size = Pt(11)
+
             hdr_cells = table.rows[0].cells
             hdr_cells[0].text = 'Отделение'
             for i, col in enumerate(dept_stats.columns):
