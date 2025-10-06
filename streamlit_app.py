@@ -299,26 +299,6 @@ if uploaded:
         # Вывод с минимальной конфигурацией
         st.plotly_chart(fig, use_container_width=True)
 
-        # Экспорт данных
-        st.markdown("## 💾 Экспорт данных")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.download_button(
-                "⬇️ Скачать очищенные данные (CSV)",
-                df.to_csv(index=False, encoding='utf-8-sig'),
-                "cleaned_data.csv",
-                "text/csv",
-                key='download-csv'
-            )
-        with col2:
-            st.download_button(
-                "⬇️ Скачать статистику по отделениям (CSV)",
-                dept_stats.reset_index().to_csv(index=False, encoding='utf-8-sig'),
-                "department_stats.csv",
-                "text/csv",
-                key='download-stats'
-            )
-
         # Сравнение периодов
         if len(uploaded) >= 2:
             st.markdown("## 📊 Сравнение периодов")
@@ -376,3 +356,31 @@ if uploaded:
                     st.plotly_chart(fig_comp, use_container_width=True)
                 else:
                     st.write("Нет общих отделений для сравнения.")
+
+        # Экспорт данных
+        st.markdown("## 💾 Экспорт данных")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.download_button(
+                "⬇️ Скачать очищенные данные (CSV)",
+                df.to_csv(index=False, encoding='utf-8-sig'),
+                "cleaned_data.csv",
+                "text/csv",
+                key='download-csv'
+            )
+        with col2:
+            st.download_button(
+                "⬇️ Скачать статистику по отделениям (CSV)",
+                dept_stats.reset_index().to_csv(index=False, encoding='utf-8-sig'),
+                "department_stats.csv",
+                "text/csv",
+                key='download-stats'
+            )
+        with col3:
+            st.download_button(
+                "📄 Скачать отчет (PDF)",
+                "PDF report feature is in development.",
+                "report.pdf",
+                "text/plain",
+                key='download-pdf'
+            )
