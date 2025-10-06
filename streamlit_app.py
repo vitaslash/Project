@@ -151,15 +151,10 @@ if uploaded is not None:
         percent_all = all_answered / total_calls * 100 if total_calls else 0
         percent_any = any_answered / total_calls * 100 if total_calls else 0
 
-        # Calculate overall average for question 6 (index 5 in question_cols)
-        q6_col = question_cols[5]
-        q6_vals = [int(str(v).strip()) for v in df[q6_col] if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]
-        q6_avg = np.mean(q6_vals) if q6_vals else None
-
         st.markdown("## 📊 Ключевые показатели")
 
-        # KPI метрики в четыре колонки
-        col1, col2, col3, col4 = st.columns(4)
+        # KPI метрики в три колонки
+        col1, col2, col3 = st.columns(3)
         with col1:
             st.metric(
                 'Всего обзвоненных пациентов',
@@ -179,12 +174,6 @@ if uploaded is not None:
                 f"{any_answered:,}",
                 delta=f"{percent_any:.1f}%",
                 help="Количество и процент пациентов, ответивших хотя бы на один вопрос"
-            )
-        with col4:
-            st.metric(
-                'Средний балл по вопросу 6',
-                f"{q6_avg:.2f}" if q6_avg else "Нет данных",
-                help="Оцените насколько доброжелательными были с Вами медицинские специалисты"
             )
 
         st.markdown("## 📈 CSI по отделениям")
