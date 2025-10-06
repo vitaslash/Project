@@ -58,6 +58,14 @@ st.markdown(f"""
         margin-bottom: 1rem;
     }}
 
+    h3 {{
+        color: {subheader_color};
+        font-weight: 500;
+        font-size: 2rem;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }}
+
     /* Таблицы */
     .dataframe {{
         font-family: 'Segoe UI', Arial, sans-serif !important;
