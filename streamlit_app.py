@@ -4,6 +4,11 @@ import numpy as np
 import plotly.graph_objects as go
 import io
 
+try:
+    from fpdf import FPDF
+except ImportError:
+    FPDF = None
+
 # Настройка страницы и стилей
 st.set_page_config(
     page_title='AutoCall — Аналитика',
@@ -361,16 +366,35 @@ if uploaded:
         # Экспорт данных
         st.markdown("## 💾 Экспорт данных")
 
-        # Generate PDF content as text (simple report)
-        pdf_content = io.StringIO()
-        pdf_content.write("AutoCall Аналитика - Отчет\n\n")
-        pdf_content.write(f"Всего обзвоненных пациентов: {total_calls}\n")
-        pdf_content.write(f"Ответили на все вопросы: {percent_all:.1f}%\n")
-        pdf_content.write(f"Ответили хотя бы на один вопрос: {percent_any:.1f}%\n")
-        pdf_content.write(f"Среднее кол-во ответов: {avg_answers_with_some:.1f}\n")
-        pdf_content.write(f"Средний CSI: {avg_csi:.1f}\n\n")
-        pdf_content.write("Статистика по отделениям:\n")
-        pdf_content.write(dept_stats.reset_index().to_csv(index=False, encoding='utf-8-sig'))
+        # Generate PDF or text content for report
+        if FPDF:
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+            pdf.cell(200, 10, txt="AutoCall Аналитика - Отчет", ln=True, align='C')
+            pdf.ln(10)
+            pdf.cell(200, 10, txt=f"Всего обзвоненных пациентов: {total_calls}", ln=True)
+            pdf.cell(200, 10, txt=f"Ответили на все вопросы: {percent_all:.1f}%", ln=True)
+            pdf.cell(200, 10, txt=f"Ответили хотя бы на один вопрос: {percent_any:.1f}%", ln=True)
+            pdf.cell(200, 10, txt=f"Среднее кол-во ответов: {avg_answers_with_some:.1f}", ln=True)
+            pdf.cell(200, 10, txt=f"Средний CSI: {avg_csi:.1f}", ln=True)
+            pdf.ln(10)
+            pdf.cell(200, 10, txt="Статистика по отделениям:", ln=True)
+            # Simple table text
+            for _, row in dept_stats.reset_index().iterrows():
+                pdf.cell(200, 10, txt=f"{row[dept_col]}: CSI {row['средний_CSI']}", ln=True)
+            pdf_file_data = pdf.output(dest='S')
+            pdf_file_data = pdf_file_data.encode('latin1')  # for str output
+        else:
+            pdf_file_data = "Установите fpdf для генерации PDF: pip install fpdf\n\n"
+            pdf_file_data += f"Всего обзвоненных пациентов: {total_calls}\n"
+            pdf_file_data += f"Ответили на все вопросы: {percent_all:.1f}%\n"
+            pdf_file_data += f"Ответили хотя бы на один вопрос: {percent_any:.1f}%\n"
+            pdf_file_data += f"Среднее кол-во ответов: {avg_answers_with_some:.1f}\n"
+            pdf_file_data += f"Средний CSI: {avg_csi:.1f}\n\n"
+            pdf_file_data += "Статистика по отделениям:\n"
+            pdf_file_data += dept_stats.reset_index().to_csv(index=False, encoding='utf-8-sig')
+            pdf_file_data = pdf_file_data.encode('utf-8-sig')
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -392,8 +416,8 @@ if uploaded:
         with col3:
             st.download_button(
                 "📄 Скачать отчет (PDF)",
-                pdf_content.getvalue(),
-                "report.txt",  # As text for now
-                "text/plain",
+                pdf_file_data,
+                "report.pdf" if FPDF else "report.txt",
+                "application/pdf" if FPDF else "text/plain",
                 key='download-pdf'
             )
