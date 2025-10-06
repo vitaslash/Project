@@ -107,19 +107,24 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-uploaded = st.file_uploader('Загрузите Excel/CSV', type=['xlsx', 'xls', 'csv'])
-if uploaded is not None:
+
+uploaded = st.file_uploader('Загрузите Excel/CSV', type=['xlsx', 'xls', 'csv'], accept_multiple_files=True)
+if uploaded:
     try:
-        if uploaded.name.lower().endswith('.csv'):
-            df = pd.read_csv(uploaded, header=None)
-        else:
-            df = pd.read_excel(uploaded, header=None)
-        df.columns = df.iloc[3]
-        df = df.iloc[4:].reset_index(drop=True)
-        df = df.dropna(how='all').reset_index(drop=True)
-        df.columns = [str(c).strip() for c in df.columns]
-        if len(df) > 0 and str(df.iloc[-1,0]).strip().lower().startswith('всего'):
-            df = df.iloc[:-1].reset_index(drop=True)
+        df_list = []
+        for file in uploaded:
+            if file.name.lower().endswith('.csv'):
+                temp_df = pd.read_csv(file, header=None)
+            else:
+                temp_df = pd.read_excel(file, header=None)
+            temp_df.columns = temp_df.iloc[3]
+            temp_df = temp_df.iloc[4:].reset_index(drop=True)
+            temp_df = temp_df.dropna(how='all').reset_index(drop=True)
+            temp_df.columns = [str(c).strip() for c in temp_df.columns]
+            if len(temp_df) > 0 and str(temp_df.iloc[-1,0]).strip().lower().startswith('всего'):
+                temp_df = temp_df.iloc[:-1].reset_index(drop=True)
+            df_list.append(temp_df)
+        df = pd.concat(df_list, ignore_index=True)
     except Exception as e:
         st.error('Ошибка чтения файла: ' + str(e))
     else:
