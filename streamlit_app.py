@@ -113,16 +113,7 @@ if uploaded:
     try:
         df_list = []
         for file in uploaded:
-            if file.name.lower().endswith('.csv'):
-                temp_df = pd.read_csv(file, header=None)
-            else:
-                temp_df = pd.read_excel(file, header=None)
-            temp_df.columns = temp_df.iloc[3]
-            temp_df = temp_df.iloc[4:].reset_index(drop=True)
-            temp_df = temp_df.dropna(how='all').reset_index(drop=True)
-            temp_df.columns = [str(c).strip() for c in temp_df.columns]
-            if len(temp_df) > 0 and str(temp_df.iloc[-1,0]).strip().lower().startswith('всего'):
-                temp_df = temp_df.iloc[:-1].reset_index(drop=True)
+            temp_df = process_single_file(file)
             df_list.append(temp_df)
         df = pd.concat(df_list, ignore_index=True)
     except Exception as e:
@@ -141,26 +132,58 @@ if uploaded:
             vals = row[question_cols]
             return sum(str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10 for v in vals)
 
-        def csi(row):
+        def count_answers(row):
+            vals = row[question_cols]
+            return sum(str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10 for v in vals)
+
+        def calculate_csi(row):
             vals = row[question_cols]
             nums = [int(str(v).strip()) for v in vals if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]
             return sum(nums) / len(nums) if nums else None
 
-        answers_per_row = df.apply(count_answers, axis=1)
-        csi_per_row = df.apply(csi, axis=1)
-        df['_answers'] = answers_per_row
-        df['_csi'] = csi_per_row
+        def process_single_file(file):
+            """Process a single uploaded file and return processed df."""
+            if hasattr(file, 'name') and file.name.lower().endswith('.csv'):
+                temp_df = pd.read_csv(file, header=None)
+            else:
+                temp_df = pd.read_excel(file, header=None)
+            temp_df.columns = temp_df.iloc[3]
+            temp_df = temp_df.iloc[4:].reset_index(drop=True)
+            temp_df = temp_df.dropna(how='all').reset_index(drop=True)
+            temp_df.columns = [str(c).strip() for c in temp_df.columns]
+            if len(temp_df) > 0 and str(temp_df.iloc[-1,0]).strip().lower().startswith('всего'):
+                temp_df = temp_df.iloc[:-1].reset_index(drop=True)
+            temp_df['_answers'] = temp_df.apply(count_answers, axis=1)
+            temp_df['_csi'] = temp_df.apply(calculate_csi, axis=1)
+            temp_df['month'] = file.name
+            return temp_df
 
-        all_answered = (answers_per_row == len(question_cols)).sum()
-        any_answered = (answers_per_row > 0).sum()
+        def compute_dept_stats(temp_df):
+            """Compute department stats for a df."""
+            num_col = temp_df.columns[0]
+            dept_stats = temp_df.groupby(dept_col).agg(
+                звонков=(num_col, 'count'),
+                средний_CSI=('_csi', 'mean'),
+                ответили_все=(num_col, lambda x: (temp_df.loc[x.index, '_answers'] == len(question_cols)).sum()),
+                ответили_хотябы=(num_col, lambda x: (temp_df.loc[x.index, '_answers'] > 0).sum()),
+            )
+            dept_stats['%_ответили_все'] = dept_stats['ответили_все'] / dept_stats['звонков'] * 100
+            dept_stats['%_ответили_хотябы'] = dept_stats['ответили_хотябы'] / dept_stats['звонков'] * 100
+            dept_stats['средний_CSI'] = dept_stats['средний_CSI'].round(2)
+            return dept_stats
+
+        # The df already has '_answers' and '_csi' from the process_single_file
+
+        all_answered = (df['_answers'] == len(question_cols)).sum()
+        any_answered = (df['_answers'] > 0).sum()
         percent_all = all_answered / total_calls * 100 if total_calls else 0
         percent_any = any_answered / total_calls * 100 if total_calls else 0
 
         # Среднее количество ответов по пациентам с хотя бы одним ответом
-        avg_answers_with_some = np.mean(answers_per_row[answers_per_row > 0]) if any_answered else None
+        avg_answers_with_some = np.mean(df['_answers'][df['_answers'] > 0]) if any_answered else None
 
         # Средний CSI по пациентам с ответами
-        valid_csi = csi_per_row.dropna()
+        valid_csi = df['_csi'].dropna()
         avg_csi = np.mean(valid_csi) if len(valid_csi) else None
 
         st.markdown("## 📊 Ключевые показатели")
@@ -201,17 +224,8 @@ if uploaded:
             )
 
         st.markdown("## 📈 CSI по отделениям")
-        
-        num_col = df.columns[0]
-        dept_stats = df.groupby(dept_col).agg(
-            звонков=(num_col, 'count'),
-            средний_CSI=('_csi', 'mean'),
-            ответили_все=(num_col, lambda x: (df.loc[x.index, '_answers'] == len(question_cols)).sum()),
-            ответили_хотябы=(num_col, lambda x: (df.loc[x.index, '_answers'] > 0).sum()),
-        )
-        dept_stats['%_ответили_все'] = dept_stats['ответили_все'] / dept_stats['звонков'] * 100
-        dept_stats['%_ответили_хотябы'] = dept_stats['ответили_хотябы'] / dept_stats['звонков'] * 100
-        dept_stats['средний_CSI'] = dept_stats['средний_CSI'].round(2)
+
+        dept_stats = compute_dept_stats(df)
 
         # Форматирование таблицы с градиентной подсветкой
         styled_stats = dept_stats.reset_index().style\
@@ -291,3 +305,58 @@ if uploaded:
                 "text/csv",
                 key='download-stats'
             )
+
+        # Сравнение месяцев
+        if len(uploaded) >= 2:
+            st.markdown("## 📊 Сравнение месяцев")
+            files = [f.name for f in uploaded]
+            col_comp1, col_comp2 = st.columns(2)
+            with col_comp1:
+                file1 = st.selectbox("Выберите первый файл", files, index=0, key='file1')
+            with col_comp2:
+                file2 = st.selectbox("Выберите второй файл", files, index=min(1, len(files)-1), key='file2')
+
+            if file1 != file2:
+                df1 = process_single_file(uploaded[files.index(file1)])
+                df2 = process_single_file(uploaded[files.index(file2)])
+                dept_stats1 = compute_dept_stats(df1)
+                dept_stats2 = compute_dept_stats(df2)
+
+                st.markdown(f"### Сравнение {file1} и {file2}")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown(f"**{file1}**")
+                    st.dataframe(dept_stats1.reset_index(), use_container_height=True)
+                with col2:
+                    st.markdown(f"**{file2}**")
+                    st.dataframe(dept_stats2.reset_index(), use_container_height=True)
+
+                # Comparison chart
+                common_depts = set(dept_stats1.index) & set(dept_stats2.index)
+                if common_depts:
+                    comp_df = pd.DataFrame(index=list(common_depts))
+                    comp_df[file1] = dept_stats1.loc[list(common_depts), 'средний_CSI']
+                    comp_df[file2] = dept_stats2.loc[list(common_depts), 'средний_CSI']
+
+                    fig_comp = go.Figure()
+                    for col in comp_df.columns:
+                        fig_comp.add_bar(
+                            name=col,
+                            x=comp_df.index,
+                            y=comp_df[col],
+                            text=comp_df[col].round(2),
+                            textposition='auto',
+                            textfont=dict(size=18),
+                        )
+                    fig_comp.update_layout(
+                        barmode='group',
+                        title="Сравнение среднего CSI по отделениям",
+                        xaxis_title='Отделение',
+                        yaxis_title='Средний CSI',
+                        font=dict(size=14),
+                        margin=dict(t=100, b=50, l=50, r=50),
+                        title_font=dict(size=16)
+                    )
+                    st.plotly_chart(fig_comp, use_container_width=True)
+                else:
+                    st.write("Нет общих отделений для сравнения.")
