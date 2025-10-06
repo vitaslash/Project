@@ -335,10 +335,10 @@ if uploaded:
                 col1, col2 = st.columns(2)
                 with col1:
                     st.markdown(f"**{file1}**")
-                    st.dataframe(dept_stats1.reset_index(), use_container_height=True)
+                    st.dataframe(dept_stats1.reset_index(), width='stretch')
                 with col2:
                     st.markdown(f"**{file2}**")
-                    st.dataframe(dept_stats2.reset_index(), use_container_height=True)
+                    st.dataframe(dept_stats2.reset_index(), width='stretch')
 
                 # Comparison chart
                 common_depts = set(dept_stats1.index) & set(dept_stats2.index)
