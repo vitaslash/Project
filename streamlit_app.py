@@ -123,12 +123,18 @@ st.markdown(f"""
     .stTabs [data-baseweb="tab-list"] {{
         gap: 2px;
         background-color: {bg_color};
+        justify-content: flex-start;
     }}
 
     .stTabs [data-baseweb="tab"] {{
         color: {text_color};
         font-size: 18px !important;
         padding: 12px 16px !important;
+    }}
+
+    .stTabs [data-baseweb="tab"]:nth-child(5),
+    .stTabs [data-baseweb="tab"]:nth-child(6) {{
+        margin-left: auto;
     }}
 
     .stTabs [data-baseweb="tab"][aria-selected="true"] {{
@@ -306,7 +312,7 @@ if uploaded:
                 })
             )
 
-            st.dataframe(styled_stats, width='stretch')
+            st.dataframe(styled_stats)
 
         with tab_questions:
             st.markdown("### 📊 Сравнение отделений по вопросам")
