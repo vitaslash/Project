@@ -377,6 +377,7 @@ if uploaded:
             doc.add_paragraph('.')
             doc.add_heading('Статистика по отделениям', level=2)
             table = doc.add_table(rows=1, cols=dept_stats.shape[1] + 1)
+            table.style = 'Table Grid'
             hdr_cells = table.rows[0].cells
             hdr_cells[0].text = 'Отделение'
             for i, col in enumerate(dept_stats.columns):
