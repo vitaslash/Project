@@ -254,50 +254,50 @@ if uploaded:
         st.dataframe(styled_stats, width='stretch')
 
         st.markdown("## 📊 Сравнение отделений по вопросам")
-        
+
         # Выбор вопросов для отображения
-        selected_questions = st.multiselect(
-            'Выберите вопросы для анализа:',
+        selected_question = st.selectbox(
+            'Выберите вопрос для анализа:',
             options=list(enumerate(question_cols, 1)),
-            default=list(enumerate(question_cols, 1)),
+            index=0,
             format_func=lambda x: f'Вопрос {x[0]}: {x[1]}'
         )
 
-        # Графики только для выбранных вопросов
-        for i, qcol in selected_questions:
-            q_stats = df.groupby(dept_col)[qcol].apply(
-                lambda vals: np.mean(lst) if (lst := [int(str(v).strip()) for v in vals if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]) else np.nan
-            )
-            q_counts = df.dropna(subset=[qcol]).groupby(dept_col)[qcol].count()
+        # График для выбранного вопроса
+        i, qcol = selected_question
+        q_stats = df.groupby(dept_col)[qcol].apply(
+            lambda vals: np.mean(lst) if (lst := [int(str(v).strip()) for v in vals if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]) else np.nan
+        )
+        q_counts = df.dropna(subset=[qcol]).groupby(dept_col)[qcol].count()
 
-            fig = go.Figure()
-            fig.add_bar(
-                x=q_stats.index,
-                y=q_stats.values,
-                marker_color='skyblue',
-                text=q_stats.values.round(1),
-                textposition='auto',
-                textfont=dict(size=18),
-                customdata=q_counts.reindex(q_stats.index),
-                hovertemplate="Средний балл: %{y:.1f}<br>Количество ответов: %{customdata}",
-            )
+        fig = go.Figure()
+        fig.add_bar(
+            x=q_stats.index,
+            y=q_stats.values,
+            marker_color='skyblue',
+            text=q_stats.values.round(1),
+            textposition='auto',
+            textfont=dict(size=18),
+            customdata=q_counts.reindex(q_stats.index),
+            hovertemplate="Средний балл: %{y:.1f}<br>Количество ответов: %{customdata}",
+        )
 
-            # Настройка графика
-            fig.update_layout(
-                height=450,
-                margin=dict(t=100, b=50, l=50, r=50),
-                yaxis_range=[0, 10],
-                title=f'<b>Средний балл по вопросу {i}</b><br>{qcol}',
-                xaxis_title='Отделение',
-                yaxis_title='Средний балл',
-                font=dict(size=14),
-                xaxis=dict(tickfont=dict(size=14)),
-                yaxis=dict(tickfont=dict(size=14)),
-                title_font=dict(size=18)
-            )
+        # Настройка графика
+        fig.update_layout(
+            height=450,
+            margin=dict(t=100, b=50, l=50, r=50),
+            yaxis_range=[0, 10],
+            title=f'<b>Средний балл по вопросу {i}</b><br>{qcol}',
+            xaxis_title='Отделение',
+            yaxis_title='Средний балл',
+            font=dict(size=14),
+            xaxis=dict(tickfont=dict(size=14)),
+            yaxis=dict(tickfont=dict(size=14)),
+            title_font=dict(size=18)
+        )
 
-            # Вывод с минимальной конфигурацией
-            st.plotly_chart(fig, use_container_width=True)
+        # Вывод с минимальной конфигурацией
+        st.plotly_chart(fig, use_container_width=True)
 
         # Экспорт данных
         st.markdown("## 💾 Экспорт данных")
