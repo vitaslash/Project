@@ -385,7 +385,10 @@ if uploaded:
                 row_cells = table.add_row().cells
                 row_cells[0].text = dept
                 for i, val in enumerate(row):
-                    row_cells[i+1].text = str(val)
+                    if isinstance(val, float):
+                        row_cells[i+1].text = f"{val:.1f}"
+                    else:
+                        row_cells[i+1].text = str(val)
             buffer = io.BytesIO()
             doc.save(buffer)
             pdf_file_data = buffer.getvalue()
