@@ -151,10 +151,15 @@ if uploaded is not None:
         percent_all = all_answered / total_calls * 100 if total_calls else 0
         percent_any = any_answered / total_calls * 100 if total_calls else 0
 
+        # Calculate overall average for question 6 (index 5 in question_cols)
+        q6_col = question_cols[5]
+        q6_vals = [int(str(v).strip()) for v in df[q6_col] if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]
+        q6_avg = np.mean(q6_vals) if q6_vals else None
+
         st.markdown("## 📊 Ключевые показатели")
-        
-        # KPI метрики в три колонки
-        col1, col2, col3 = st.columns(3)
+
+        # KPI метрики в четыре колонки
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric(
                 'Всего обзвоненных пациентов',
@@ -174,6 +179,12 @@ if uploaded is not None:
                 f"{any_answered:,}",
                 delta=f"{percent_any:.1f}%",
                 help="Количество и процент пациентов, ответивших хотя бы на один вопрос"
+            )
+        with col4:
+            st.metric(
+                'Средний балл по вопросу 6',
+                f"{q6_avg:.2f}" if q6_avg else "Нет данных",
+                help="Оцените насколько доброжелательными были с Вами медицинские специалисты"
             )
 
         st.markdown("## 📈 CSI по отделениям")
@@ -223,21 +234,26 @@ if uploaded is not None:
             
             fig = go.Figure()
             fig.add_bar(
-                x=q_stats.index, 
+                x=q_stats.index,
                 y=q_stats.values,
                 marker_color='skyblue',
                 text=q_stats.values.round(2),
                 textposition='auto',
+                textfont=dict(size=18),
             )
-            
+
             # Настройка графика
             fig.update_layout(
                 height=450,
-                margin=dict(t=50, b=50),
+                margin=dict(t=100, b=50, l=50, r=50),
                 yaxis_range=[0, 10],
-                title=f'<b>Средний балл по вопросу {i}</b><br><sup>{qcol}</sup>',
+                title=f'<b>Средний балл по вопросу {i}</b><br>{qcol}',
                 xaxis_title='Отделение',
-                yaxis_title='Средний балл'
+                yaxis_title='Средний балл',
+                font=dict(size=14),
+                xaxis=dict(tickfont=dict(size=14)),
+                yaxis=dict(tickfont=dict(size=14)),
+                title_font=dict(size=18)
             )
             
             # Вывод с минимальной конфигурацией
