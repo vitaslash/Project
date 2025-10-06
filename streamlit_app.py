@@ -369,13 +369,29 @@ if uploaded:
             from docx.shared import Pt
 
             doc = Document()
+
+            # Set default font for the document
+            from docx.oxml.shared import OxmlElement, nsid
+            font_style = doc.styles['Normal'].font
+            font_style.name = 'Calibri'
+
             doc.add_heading('AutoCall Аналитика - Отчет', 0)
             doc.add_paragraph('.')
-            doc.add_paragraph(f'Всего обзвоненных пациентов: {total_calls}')
-            doc.add_paragraph(f'Ответили на все вопросы: {percent_all:.1f}%')
-            doc.add_paragraph(f'Ответили хотя бы на один вопрос: {percent_any:.1f}%')
-            doc.add_paragraph(f'Среднее кол-во ответов: {avg_answers_with_some:.1f}')
-            doc.add_paragraph(f'Средний CSI: {avg_csi:.1f}')
+            para1 = doc.add_paragraph(f'Всего обзвоненных пациентов: {total_calls}')
+            for run in para1.runs:
+                run.font.name = 'Calibri'
+            para2 = doc.add_paragraph(f'Ответили на все вопросы: {percent_all:.1f}%')
+            for run in para2.runs:
+                run.font.name = 'Calibri'
+            para3 = doc.add_paragraph(f'Ответили хотя бы на один вопрос: {percent_any:.1f}%')
+            for run in para3.runs:
+                run.font.name = 'Calibri'
+            para4 = doc.add_paragraph(f'Среднее кол-во ответов: {avg_answers_with_some:.1f}')
+            for run in para4.runs:
+                run.font.name = 'Calibri'
+            para5 = doc.add_paragraph(f'Средний CSI: {avg_csi:.1f}')
+            for run in para5.runs:
+                run.font.name = 'Calibri'
             doc.add_paragraph('.')
             doc.add_heading('Статистика по отделениям', level=2)
             table = doc.add_table(rows=1, cols=dept_stats.shape[1] + 1)
