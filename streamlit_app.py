@@ -155,6 +155,8 @@ if uploaded:
         )
         dept_stats['%_ответили_все'] = dept_stats['ответили_все'] / dept_stats['звонков'] * 100
         dept_stats['%_ответили_хотябы'] = dept_stats['ответили_хотябы'] / dept_stats['звонков'] * 100
+        dept_stats['%_ответили_все'] = dept_stats['%_ответили_все'].round(1)
+        dept_stats['%_ответили_хотябы'] = dept_stats['%_ответили_хотябы'].round(1)
         dept_stats['средний_CSI'] = dept_stats['средний_CSI'].round(1)
         return dept_stats
 
@@ -241,18 +243,20 @@ if uploaded:
         dept_stats = compute_dept_stats(df, question_cols, dept_col)
 
         # Форматирование таблицы с градиентной подсветкой
-        styled_stats = dept_stats.reset_index().style\
-            .background_gradient(subset=['средний_CSI'], cmap='RdYlGn')\
+        styled_stats = (
+            dept_stats.reset_index().style
+            .background_gradient(subset=['средний_CSI'], cmap='RdYlGn')
             .format({
                 'средний_CSI': '{:.1f}',
                 '%_ответили_все': '{:.1f}%',
                 '%_ответили_хотябы': '{:.1f}%'
-            })\
+            })
             .set_properties(**{
                 'font-size': '14px',
                 'font-family': 'Segoe UI, Arial, sans-serif',
                 'text-align': 'center'
             })
+        )
         
         st.dataframe(styled_stats, width='stretch')
 
