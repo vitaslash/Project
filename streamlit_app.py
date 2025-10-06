@@ -176,45 +176,10 @@ if uploaded:
             vals = row[question_cols]
             return sum(str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10 for v in vals)
 
-        def count_answers(row):
-            vals = row[question_cols]
-            return sum(str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10 for v in vals)
-
         def calculate_csi(row):
             vals = row[question_cols]
             nums = [int(str(v).strip()) for v in vals if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]
             return sum(nums) / len(nums) if nums else None
-
-        def process_single_file(file):
-            """Process a single uploaded file and return processed df."""
-            if hasattr(file, 'name') and file.name.lower().endswith('.csv'):
-                temp_df = pd.read_csv(file, header=None)
-            else:
-                temp_df = pd.read_excel(file, header=None)
-            temp_df.columns = temp_df.iloc[3]
-            temp_df = temp_df.iloc[4:].reset_index(drop=True)
-            temp_df = temp_df.dropna(how='all').reset_index(drop=True)
-            temp_df.columns = [str(c).strip() for c in temp_df.columns]
-            if len(temp_df) > 0 and str(temp_df.iloc[-1,0]).strip().lower().startswith('всего'):
-                temp_df = temp_df.iloc[:-1].reset_index(drop=True)
-            temp_df['_answers'] = temp_df.apply(count_answers, axis=1)
-            temp_df['_csi'] = temp_df.apply(calculate_csi, axis=1)
-            temp_df['month'] = file.name
-            return temp_df
-
-        def compute_dept_stats(temp_df):
-            """Compute department stats for a df."""
-            num_col = temp_df.columns[0]
-            dept_stats = temp_df.groupby(dept_col).agg(
-                звонков=(num_col, 'count'),
-                средний_CSI=('_csi', 'mean'),
-                ответили_все=(num_col, lambda x: (temp_df.loc[x.index, '_answers'] == len(question_cols)).sum()),
-                ответили_хотябы=(num_col, lambda x: (temp_df.loc[x.index, '_answers'] > 0).sum()),
-            )
-            dept_stats['%_ответили_все'] = dept_stats['ответили_все'] / dept_stats['звонков'] * 100
-            dept_stats['%_ответили_хотябы'] = dept_stats['ответили_хотябы'] / dept_stats['звонков'] * 100
-            dept_stats['средний_CSI'] = dept_stats['средний_CSI'].round(2)
-            return dept_stats
 
         # The df already has '_answers' and '_csi' from the process_single_file
 
@@ -269,7 +234,7 @@ if uploaded:
 
         st.markdown("## 📈 CSI по отделениям")
 
-        dept_stats = compute_dept_stats(df)
+        dept_stats = compute_dept_stats(df, question_cols, dept_col)
 
         # Форматирование таблицы с градиентной подсветкой
         styled_stats = dept_stats.reset_index().style\
