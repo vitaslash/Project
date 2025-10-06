@@ -363,19 +363,46 @@ if uploaded:
         # Экспорт данных
         st.markdown("## 💾 Экспорт данных")
 
-        # Generate text report
-        pdf_file_data = f"AutoCall Аналитика - Отчет\n\n"
-        pdf_file_data += f"Всего обзвоненных пациентов: {total_calls}\n"
-        pdf_file_data += f"Ответили на все вопросы: {percent_all:.1f}%\n"
-        pdf_file_data += f"Ответили хотя бы на один вопрос: {percent_any:.1f}%\n"
-        pdf_file_data += f"Среднее кол-во ответов: {avg_answers_with_some:.1f}\n"
-        pdf_file_data += f"Средний CSI: {avg_csi:.1f}\n\n"
-        pdf_file_data += "Статистика по отделениям:\n"
-        pdf_file_data += dept_stats.reset_index().to_csv(index=False, encoding='utf-8-sig')
-        pdf_file_data = pdf_file_data.encode('utf-8-sig')
-
-        mime = "text/plain"
-        fname = "report.txt"
+        # Generate Word document report
+        try:
+            from docx import Document
+            doc = Document()
+            doc.add_heading('AutoCall Аналитика - Отчет', 0)
+            doc.add_paragraph('.')
+            doc.add_paragraph(f'Всего обзвоненных пациентов: {total_calls}')
+            doc.add_paragraph(f'Ответили на все вопросы: {percent_all:.1f}%')
+            doc.add_paragraph(f'Ответили хотя бы на один вопрос: {percent_any:.1f}%')
+            doc.add_paragraph(f'Среднее кол-во ответов: {avg_answers_with_some:.1f}')
+            doc.add_paragraph(f'Средний CSI: {avg_csi:.1f}')
+            doc.add_paragraph('.')
+            doc.add_heading('Статистика по отделениям', level=2)
+            table = doc.add_table(rows=1, cols=dept_stats.shape[1] + 1)
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'Отделение'
+            for i, col in enumerate(dept_stats.columns):
+                hdr_cells[i+1].text = col
+            for idx, (dept, row) in enumerate(dept_stats.iterrows()):
+                row_cells = table.add_row().cells
+                row_cells[0].text = dept
+                for i, val in enumerate(row):
+                    row_cells[i+1].text = str(val)
+            buffer = io.BytesIO()
+            doc.save(buffer)
+            pdf_file_data = buffer.getvalue()
+            mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            fname = "report.docx"
+        except ImportError:
+            pdf_file_data = "Установите python-docx для генерации документа Word: pip install python-docx\n\n"
+            pdf_file_data += f"Всего обзвоненных пациентов: {total_calls}\n"
+            pdf_file_data += f"Ответили на все вопросы: {percent_all:.1f}%\n"
+            pdf_file_data += f"Ответили хотя бы на один вопрос: {percent_any:.1f}%\n"
+            pdf_file_data += f"Среднее кол-во ответов: {avg_answers_with_some:.1f}\n"
+            pdf_file_data += f"Средний CSI: {avg_csi:.1f}\n\n"
+            pdf_file_data += "Статистика по отделением:\n"
+            pdf_file_data += dept_stats.reset_index().to_csv(index=False, encoding='utf-8-sig')
+            pdf_file_data = pdf_file_data.encode('utf-8-sig')
+            mime = "text/plain"
+            fname = "report.txt"
 
         col1, col2, col3 = st.columns(3)
         with col1:
