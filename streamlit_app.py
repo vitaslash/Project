@@ -110,10 +110,54 @@ st.markdown("""
 
 uploaded = st.file_uploader('Загрузите Excel/CSV', type=['xlsx', 'xls', 'csv'], accept_multiple_files=True)
 if uploaded:
+    def count_answers(row):
+        vals = row[question_cols]
+        return sum(str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10 for v in vals)
+
+    def calculate_csi(row):
+        vals = row[question_cols]
+        nums = [int(str(v).strip()) for v in vals if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]
+        return sum(nums) / len(nums) if nums else None
+
+    def process_single_file(file):
+        """Process a single uploaded file and return processed df."""
+        if hasattr(file, 'name') and file.name.lower().endswith('.csv'):
+            temp_df = pd.read_csv(file, header=None)
+        else:
+            temp_df = pd.read_excel(file, header=None)
+        temp_df.columns = temp_df.iloc[3]
+        temp_df = temp_df.iloc[4:].reset_index(drop=True)
+        temp_df = temp_df.dropna(how='all').reset_index(drop=True)
+        temp_df.columns = [str(c).strip() for c in temp_df.columns]
+        if len(temp_df) > 0 and str(temp_df.iloc[-1,0]).strip().lower().startswith('всего'):
+            temp_df = temp_df.iloc[:-1].reset_index(drop=True)
+
+        # Local processing
+        question_cols_temp = temp_df.columns[5:13]
+        dept_col_temp = temp_df.columns[2]
+        temp_df['_answers'] = temp_df.apply(lambda row: sum(str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10 for v in row[question_cols_temp]), axis=1)
+        temp_df['_csi'] = temp_df.apply(lambda row: sum([int(str(v).strip()) for v in row[question_cols_temp] if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]) / len([int(str(v).strip()) for v in row[question_cols_temp] if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]) if [int(str(v).strip()) for v in row[question_cols_temp] if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10] else None, axis=1)
+        temp_df['month'] = file.name
+        return temp_df, question_cols_temp, dept_col_temp
+
+    def compute_dept_stats(temp_df, question_cols_temp, dept_col_temp):
+        """Compute department stats for a df."""
+        num_col = temp_df.columns[0]
+        dept_stats = temp_df.groupby(dept_col_temp).agg(
+            звонков=(num_col, 'count'),
+            средний_CSI=('_csi', 'mean'),
+            ответили_все=(num_col, lambda x: (temp_df.loc[x.index, '_answers'] == len(question_cols_temp)).sum()),
+            ответили_хотябы=(num_col, lambda x: (temp_df.loc[x.index, '_answers'] > 0).sum() ),
+        )
+        dept_stats['%_ответили_все'] = dept_stats['ответили_все'] / dept_stats['звонков'] * 100
+        dept_stats['%_ответили_хотябы'] = dept_stats['ответили_хотябы'] / dept_stats['звонков'] * 100
+        dept_stats['средний_CSI'] = dept_stats['средний_CSI'].round(2)
+        return dept_stats
+
     try:
         df_list = []
         for file in uploaded:
-            temp_df = process_single_file(file)
+            temp_df, question_cols_temp, dept_col_temp = process_single_file(file)
             df_list.append(temp_df)
         df = pd.concat(df_list, ignore_index=True)
     except Exception as e:
@@ -317,10 +361,10 @@ if uploaded:
                 file2 = st.selectbox("Выберите второй файл", files, index=min(1, len(files)-1), key='file2')
 
             if file1 != file2:
-                df1 = process_single_file(uploaded[files.index(file1)])
-                df2 = process_single_file(uploaded[files.index(file2)])
-                dept_stats1 = compute_dept_stats(df1)
-                dept_stats2 = compute_dept_stats(df2)
+                df1, question_cols1, dept_col1 = process_single_file(uploaded[files.index(file1)])
+                df2, question_cols2, dept_col2 = process_single_file(uploaded[files.index(file2)])
+                dept_stats1 = compute_dept_stats(df1, question_cols1, dept_col1)
+                dept_stats2 = compute_dept_stats(df2, question_cols2, dept_col2)
 
                 st.markdown(f"### Сравнение {file1} и {file2}")
                 col1, col2 = st.columns(2)
