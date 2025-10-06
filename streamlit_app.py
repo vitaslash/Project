@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+import io
 
 # Настройка страницы и стилей
 st.set_page_config(
@@ -359,6 +360,18 @@ if uploaded:
 
         # Экспорт данных
         st.markdown("## 💾 Экспорт данных")
+
+        # Generate PDF content as text (simple report)
+        pdf_content = io.StringIO()
+        pdf_content.write("AutoCall Аналитика - Отчет\n\n")
+        pdf_content.write(f"Всего обзвоненных пациентов: {total_calls}\n")
+        pdf_content.write(f"Ответили на все вопросы: {percent_all:.1f}%\n")
+        pdf_content.write(f"Ответили хотя бы на один вопрос: {percent_any:.1f}%\n")
+        pdf_content.write(f"Среднее кол-во ответов: {avg_answers_with_some:.1f}\n")
+        pdf_content.write(f"Средний CSI: {avg_csi:.1f}\n\n")
+        pdf_content.write("Статистика по отделениям:\n")
+        pdf_content.write(dept_stats.reset_index().to_csv(index=False, encoding='utf-8-sig'))
+
         col1, col2, col3 = st.columns(3)
         with col1:
             st.download_button(
@@ -379,8 +392,8 @@ if uploaded:
         with col3:
             st.download_button(
                 "📄 Скачать отчет (PDF)",
-                "PDF report feature is in development.",
-                "report.pdf",
+                pdf_content.getvalue(),
+                "report.txt",  # As text for now
                 "text/plain",
                 key='download-pdf'
             )
