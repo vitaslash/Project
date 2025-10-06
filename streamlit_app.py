@@ -15,7 +15,7 @@ st.set_page_config(
 
 # Sidebar logo
 try:
-    st.sidebar.image("logo.jpg", use_column_width=True)
+    st.sidebar.image("logo.jpg", use_container_width=True)
 except FileNotFoundError:
     pass
 
