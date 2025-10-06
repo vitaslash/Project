@@ -151,10 +151,17 @@ if uploaded is not None:
         percent_all = all_answered / total_calls * 100 if total_calls else 0
         percent_any = any_answered / total_calls * 100 if total_calls else 0
 
+        # Среднее количество ответов по пациентам с хотя бы одним ответом
+        avg_answers_with_some = np.mean(answers_per_row[answers_per_row > 0]) if any_answered else None
+
+        # Средний CSI по пациентам с ответами
+        valid_csi = csi_per_row.dropna()
+        avg_csi = np.mean(valid_csi) if len(valid_csi) else None
+
         st.markdown("## 📊 Ключевые показатели")
 
-        # KPI метрики в три колонки
-        col1, col2, col3 = st.columns(3)
+        # KPI метрики в пять колонок
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.metric(
                 'Всего обзвоненных пациентов',
@@ -174,6 +181,18 @@ if uploaded is not None:
                 f"{any_answered:,}",
                 delta=f"{percent_any:.1f}%",
                 help="Количество и процент пациентов, ответивших хотя бы на один вопрос"
+            )
+        with col4:
+            st.metric(
+                'Среднее кол-во ответов',
+                f"{avg_answers_with_some:.2f}" if avg_answers_with_some else "Нет данных",
+                help="Среднее количество ответов среди пациентов, ответивших хотя бы на один вопрос"
+            )
+        with col5:
+            st.metric(
+                'Средний CSI',
+                f"{avg_csi:.2f}" if avg_csi else "Нет данных",
+                help="Среднее значение CSI среди пациентов, ответивших хотя бы на один вопрос"
             )
 
         st.markdown("## 📈 CSI по отделениям")
