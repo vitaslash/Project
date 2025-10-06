@@ -435,7 +435,7 @@ if uploaded:
             mime = "text/plain"
             fname = "report.txt"
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         with col1:
             st.download_button(
                 "⬇️ Скачать очищенные данные (CSV)",
@@ -451,12 +451,4 @@ if uploaded:
                 "department_stats.csv",
                 "text/csv",
                 key='download-stats'
-            )
-        with col3:
-            st.download_button(
-                "📄 Скачать отчет",
-                pdf_file_data,
-                fname,
-                mime,
-                key='download-pdf'
             )
