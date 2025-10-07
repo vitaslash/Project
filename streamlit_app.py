@@ -160,8 +160,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-uploaded = st.file_uploader('Загрузите Excel/CSV', type=['xlsx', 'xls', 'csv'], accept_multiple_files=True)
-if uploaded:
+import os
+files_path = r"\\10.9.107.248\IT Share\load"
+try:
+    all_files = [f for f in os.listdir(files_path) if f.endswith(('.xlsx', '.xls', '.csv'))]
+    if all_files:
+        selected_files = st.multiselect('Выберите файлы для анализа:', options=all_files, default=all_files)
+    else:
+        st.error("Файлы не найдены в папке")
+        selected_files = []
+except (PermissionError, FileNotFoundError, OSError):
+    st.error("Не удалось подключиться к сетевой папке")
+    selected_files = []
+
+if selected_files:
     def count_answers(row):
         vals = row[question_cols]
         return sum(str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10 for v in vals)
@@ -171,12 +183,13 @@ if uploaded:
         nums = [int(str(v).strip()) for v in vals if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]
         return sum(nums) / len(nums) if nums else None
 
-    def process_single_file(file):
-        """Process a single uploaded file and return processed df."""
-        if hasattr(file, 'name') and file.name.lower().endswith('.csv'):
-            temp_df = pd.read_csv(file, header=None)
+    def process_single_file(file_name):
+        """Process a single file by name from the shared folder."""
+        file_path = os.path.join(files_path, file_name)
+        if file_name.lower().endswith('.csv'):
+            temp_df = pd.read_csv(file_path, header=None)
         else:
-            temp_df = pd.read_excel(file, header=None)
+            temp_df = pd.read_excel(file_path, header=None)
         temp_df.columns = temp_df.iloc[3]
         temp_df = temp_df.iloc[4:].reset_index(drop=True)
         temp_df = temp_df.dropna(how='all').reset_index(drop=True)
@@ -189,7 +202,7 @@ if uploaded:
         dept_col_temp = temp_df.columns[2]
         temp_df['_answers'] = temp_df.apply(lambda row: sum(str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10 for v in row[question_cols_temp]), axis=1)
         temp_df['_csi'] = temp_df.apply(lambda row: sum([int(str(v).strip()) for v in row[question_cols_temp] if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]) / len([int(str(v).strip()) for v in row[question_cols_temp] if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10]) if [int(str(v).strip()) for v in row[question_cols_temp] if str(v).strip().isdigit() and 1 <= int(str(v).strip()) <= 10] else None, axis=1)
-        temp_df['month'] = file.name
+        temp_df['month'] = file_name
         return temp_df, question_cols_temp, dept_col_temp
 
     def compute_dept_stats(temp_df, question_cols_temp, dept_col_temp):
@@ -211,8 +224,8 @@ if uploaded:
 
     try:
         df_list = []
-        for file in uploaded:
-            temp_df, question_cols_temp, dept_col_temp = process_single_file(file)
+        for file_name in selected_files:
+            temp_df, question_cols_temp, dept_col_temp = process_single_file(file_name)
             df_list.append(temp_df)
         df = pd.concat(df_list, ignore_index=True)
     except Exception as e:
@@ -406,9 +419,9 @@ if uploaded:
 
         with tab_comparisons:
             # Сравнение периодов
-            if len(uploaded) >= 2:
+            if len(selected_files) >= 2:
                 st.markdown("### 📊 Сравнение периодов")
-                files = [f.name for f in uploaded]
+                files = selected_files
                 col_comp1, col_comp2 = st.columns(2)
                 with col_comp1:
                     file1 = st.selectbox("Выберите первый файл", files, index=0, key='file1')
@@ -416,8 +429,8 @@ if uploaded:
                     file2 = st.selectbox("Выберите второй файл", files, index=min(1, len(files)-1), key='file2')
 
                 if file1 != file2:
-                    df1, question_cols1, dept_col1 = process_single_file(uploaded[files.index(file1)])
-                    df2, question_cols2, dept_col2 = process_single_file(uploaded[files.index(file2)])
+                    df1, question_cols1, dept_col1 = process_single_file(file1)
+                    df2, question_cols2, dept_col2 = process_single_file(file2)
                     dept_stats1 = compute_dept_stats(df1, question_cols1, dept_col1)
                     dept_stats2 = compute_dept_stats(df2, question_cols2, dept_col2)
 
