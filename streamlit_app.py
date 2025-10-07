@@ -146,6 +146,13 @@ st.markdown(f"""
         transform: translateY(-1px);
         transition: all 0.2s ease;
     }}
+
+    /* Selected file buttons */
+    .selected .stButton > button {{
+        background-color: #2ecc71 !important;
+        color: white !important;
+        border-color: #2ecc71 !important;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -161,16 +168,46 @@ st.markdown("""
 
 
 import os
+from os.path import basename
+
+def sort_by_month(files):
+    month_order = [
+        'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
+        'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'
+    ]
+    return sorted(files, key=lambda f: next((i for i, m in enumerate(month_order) if m in basename(f).lower()), 12))
+
 files_path = r"\\10.9.107.248\IT Share\load"
 try:
-    all_files = [f for f in os.listdir(files_path) if f.endswith(('.xlsx', '.xls', '.csv'))]
+    all_files_unsorted = [f for f in os.listdir(files_path) if f.endswith(('.xlsx', '.xls', '.csv'))]
+    all_files = sort_by_month(all_files_unsorted)
     if all_files:
-        selected_files = st.multiselect('Выберите файлы для анализа:', options=all_files, default=all_files)
+        st.markdown("### 📁 Выберите файлы для анализа:")
+
+        if 'selected_files' not in st.session_state:
+            st.session_state.selected_files = []
+
+        # Отображение чекбоксов для каждого файла
+        cols = st.columns(12)  # 12 чекбоксов в ряд
+        for i, file_name in enumerate(all_files):
+            with cols[i % 12]:
+                st.checkbox(file_name, key=file_name)
+
+        selected_files = [file_name for file_name in all_files if st.session_state[file_name]]
+
+        if selected_files:
+            st.markdown(f"**Выбрано файлов: {len(selected_files)}**")
+            if st.button("Очистить выбор"):
+                for file_name in all_files:
+                    st.session_state[file_name] = False
+                st.session_state.selected_files = []
+        else:
+            st.info("Выберите файлы с помощью чекбоксов")
     else:
         st.error("Файлы не найдены в папке")
         selected_files = []
-except (PermissionError, FileNotFoundError, OSError):
-    st.error("Не удалось подключиться к сетевой папке")
+except (PermissionError, FileNotFoundError, OSError) as e:
+    st.error(f"Не удалось подключиться к сетевой папке: {e}")
     selected_files = []
 
 if selected_files:
