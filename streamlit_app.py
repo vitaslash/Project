@@ -13,23 +13,12 @@ st.set_page_config(
     initial_sidebar_state='collapsed'
 )
 
-# Session state for theme
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'dark'
-
-# Toggle theme
-theme_toggle = st.sidebar.toggle("🌙 Темная тема", value=st.session_state.theme == 'dark')
-if theme_toggle:
-    st.session_state.theme = 'dark'
-else:
-    st.session_state.theme = 'light'
-
-# Dynamic CSS based on theme
-bg_color = '#1e1e1e' if st.session_state.theme == 'dark' else '#ffffff'
-text_color = '#ffffff' if st.session_state.theme == 'dark' else '#2c3e50'
-header_color = '#61dafb' if st.session_state.theme == 'dark' else '#3498db'
-subheader_color = '#a8a8a8' if st.session_state.theme == 'dark' else '#34495e'
-card_bg = '#2d3748' if st.session_state.theme == 'dark' else 'white'
+# Fixed light theme
+bg_color = '#ffffff'
+text_color = '#2c3e50'
+header_color = '#3498db'
+subheader_color = '#34495e'
+card_bg = 'white'
 
 st.markdown(f"""
 <style>
