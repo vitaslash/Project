@@ -225,7 +225,10 @@ if selected_files:
         file_path = os.path.join(files_path, file_name)
         if file_name.lower().endswith('.csv'):
             temp_df = pd.read_csv(file_path, header=None)
+        elif file_name.lower().endswith('.xls'):
+            temp_df = pd.read_excel(file_path, header=None, engine='xlrd')
         else:
+            # Для .xlsx файлов используем openpyxl (движок по умолчанию)
             temp_df = pd.read_excel(file_path, header=None)
         temp_df.columns = temp_df.iloc[3]
         temp_df = temp_df.iloc[4:].reset_index(drop=True)
